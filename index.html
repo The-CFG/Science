@@ -1429,7 +1429,9 @@
                             }
                         }
 
-                        // 생성물 추가
+                        // 생성물 추가 및 부피 변화 계산
+                        let volumeChange = 0; // 부피 변화량 (음수면 감소)
+                        
                         rule.products.forEach(product => {
                             if (product.includes('(s)')) {
                                 // 침전물 양 증가 (각 반응당 5mL 부피로 가정)
@@ -1443,10 +1445,18 @@
                                 this.createGasBubbles(product);
                                 this.showGasNotification(product);
                                 // 기체는 이온 풀에 추가하지 않음 (날아가므로)
+                                // 기체 1몰당 약 3mL의 용액 부피 감소 (기체가 용액에서 빠져나감)
+                                volumeChange -= 3;
                             } else {
                                 this.ions[product] = (this.ions[product] || 0) + 1;
                             }
                         });
+                        
+                        // 부피 변화 적용
+                        this.totalVolume = Math.max(0, this.totalVolume + volumeChange);
+                        if (volumeChange < 0) {
+                            this.logReaction(`기체 발생으로 용액 부피 ${Math.abs(volumeChange)}mL 감소`);
+                        }
 
                         // 온도 변화
                         this.temperature += rule.heat;
@@ -1713,80 +1723,177 @@
                 const display = document.getElementById('precipitates-display');
                 display.innerHTML = '';
 
-                if (this.precipitateHeight > 0) {
-                    // 주요 침전물 결정 (가장 많은 것)
-                    let mainPrecipitate = null;
-                    let maxAmount = 0;
-                    for (const [type, amount] of Object.entries(this.precipitates)) {
-                        if (amount > maxAmount) {
-                            maxAmount = amount;
-                            mainPrecipitate = type;
-                        }
-                    }
-
-                    if (mainPrecipitate) {
-                        // 침전물 레이어 생성
-                        const precipitateLayer = document.createElement('div');
-                        precipitateLayer.className = 'precipitate-layer';
-                        
-                        // 침전물 정보 가져오기
-                        const info = this.precipitateInfo[mainPrecipitate];
-                        const color = info ? info.color : '#f7fafc';
-                        
-                        precipitateLayer.style.setProperty('--precipitate-height', this.precipitateHeight + 'px');
-                        precipitateLayer.style.setProperty('--precipitate-color', color);
-                        
-                        // 침전물 입자들 추가
-                        const particlesContainer = document.createElement('div');
-                        particlesContainer.className = 'precipitate-particles';
-                        
-                        // 랜덤 입자들 생성
-                        for (let i = 0; i < Math.min(this.precipitateHeight / 2, 30); i++) {
-                            const particle = document.createElement('div');
-                            particle.className = 'precipitate-particle';
-                            particle.style.left = Math.random() * 90 + 5 + '%';
-                            particle.style.bottom = Math.random() * this.precipitateHeight + 'px';
-                            particle.style.animationDelay = Math.random() * 2 + 's';
-                            particlesContainer.appendChild(particle);
-                        }
-                        
-                        precipitateLayer.appendChild(particlesContainer);
-                        
-                        // 툴팁 추가
-                        const tooltip = document.createElement('div');
-                        tooltip.className = 'precipitate-tooltip';
-                        
-                        // 모든 침전물 정보 표시
-                        let tooltipContent = '<strong>침전물 정보</strong><br>';
-                        for (const [type, amount] of Object.entries(this.precipitates)) {
-                            const typeInfo = this.precipitateInfo[type];
-                            if (typeInfo) {
-                                tooltipContent += `${typeInfo.name}: ${amount}mL<br>`;
+                if (Object.keys(this.precipitates).length > 0) {
+                    // 침전물을 생성 순서대로 정렬 (먼저 생성된 것이 아래층)
+                    const precipitateEntries = Object.entries(this.precipitates);
+                    
+                    let currentBottom = 0; // 현재 바닥에서의 높이
+                    
+                    // 각 침전물 타입별로 개별 레이어 생성
+                    precipitateEntries.forEach(([type, amount], index) => {
+                        if (amount > 0) {
+                            const precipitateLayer = document.createElement('div');
+                            precipitateLayer.className = 'precipitate-layer';
+                            precipitateLayer.style.position = 'absolute';
+                            precipitateLayer.style.bottom = currentBottom + 'px';
+                            precipitateLayer.style.left = '0';
+                            precipitateLayer.style.right = '0';
+                            precipitateLayer.style.height = amount + 'px';
+                            precipitateLayer.style.borderRadius = currentBottom === 0 ? '0 0 24px 24px' : '0';
+                            precipitateLayer.style.transition = 'all 0.8s ease';
+                            precipitateLayer.style.cursor = 'pointer';
+                            precipitateLayer.style.zIndex = 10 + index;
+                            
+                            // 침전물 정보 가져오기
+                            const info = this.precipitateInfo[type];
+                            const color = info ? info.color : '#f7fafc';
+                            
+                            // 각 층마다 다른 색상과 패턴 적용
+                            precipitateLayer.style.background = `linear-gradient(to top, ${color}, ${this.lightenColor(color, 20)})`;
+                            precipitateLayer.style.border = `2px solid ${this.darkenColor(color, 30)}`;
+                            precipitateLayer.style.borderBottom = currentBottom === 0 ? precipitateLayer.style.border : 'none';
+                            
+                            // 호버 효과
+                            precipitateLayer.addEventListener('mouseenter', function() {
+                                this.style.filter = 'brightness(1.15) saturate(1.2)';
+                                this.style.transform = 'scaleX(1.02)';
+                                this.style.boxShadow = '0 0 15px rgba(66, 153, 225, 0.4)';
+                            });
+                            
+                            precipitateLayer.addEventListener('mouseleave', function() {
+                                this.style.filter = 'brightness(1)';
+                                this.style.transform = 'scaleX(1)';
+                                this.style.boxShadow = 'none';
+                            });
+                            
+                            // 침전물 입자들 추가
+                            const particlesContainer = document.createElement('div');
+                            particlesContainer.className = 'precipitate-particles';
+                            particlesContainer.style.position = 'absolute';
+                            particlesContainer.style.top = '0';
+                            particlesContainer.style.left = '0';
+                            particlesContainer.style.right = '0';
+                            particlesContainer.style.bottom = '0';
+                            particlesContainer.style.pointerEvents = 'none';
+                            
+                            // 각 층의 높이에 맞는 입자 생성
+                            const particleCount = Math.min(amount / 3, 20);
+                            for (let i = 0; i < particleCount; i++) {
+                                const particle = document.createElement('div');
+                                particle.className = 'precipitate-particle';
+                                particle.style.left = Math.random() * 90 + 5 + '%';
+                                particle.style.bottom = Math.random() * amount + 'px';
+                                particle.style.animationDelay = Math.random() * 2 + 's';
+                                particle.style.background = `rgba(255, 255, 255, ${0.3 + Math.random() * 0.4})`;
+                                particlesContainer.appendChild(particle);
                             }
+                            
+                            precipitateLayer.appendChild(particlesContainer);
+                            
+                            // 층 구분선 추가 (맨 아래층 제외)
+                            if (currentBottom > 0) {
+                                const separator = document.createElement('div');
+                                separator.style.position = 'absolute';
+                                separator.style.top = '-1px';
+                                separator.style.left = '0';
+                                separator.style.right = '0';
+                                separator.style.height = '2px';
+                                separator.style.background = 'rgba(0, 0, 0, 0.2)';
+                                separator.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+                                precipitateLayer.appendChild(separator);
+                            }
+                            
+                            // 층 라벨 추가
+                            const layerLabel = document.createElement('div');
+                            layerLabel.style.position = 'absolute';
+                            layerLabel.style.top = '50%';
+                            layerLabel.style.left = '5px';
+                            layerLabel.style.transform = 'translateY(-50%)';
+                            layerLabel.style.background = 'rgba(0, 0, 0, 0.7)';
+                            layerLabel.style.color = 'white';
+                            layerLabel.style.padding = '2px 6px';
+                            layerLabel.style.borderRadius = '10px';
+                            layerLabel.style.fontSize = '0.7rem';
+                            layerLabel.style.fontWeight = '600';
+                            layerLabel.style.opacity = '0';
+                            layerLabel.style.transition = 'opacity 0.3s ease';
+                            layerLabel.style.pointerEvents = 'none';
+                            layerLabel.textContent = info ? info.name : type;
+                            
+                            precipitateLayer.appendChild(layerLabel);
+                            
+                            // 호버시 라벨 표시
+                            precipitateLayer.addEventListener('mouseenter', function() {
+                                layerLabel.style.opacity = '1';
+                            });
+                            
+                            precipitateLayer.addEventListener('mouseleave', function() {
+                                layerLabel.style.opacity = '0';
+                            });
+                            
+                            // 개별 툴팁 추가
+                            const tooltip = document.createElement('div');
+                            tooltip.className = 'precipitate-tooltip';
+                            tooltip.style.position = 'fixed';
+                            tooltip.style.background = '#2d3748';
+                            tooltip.style.color = 'white';
+                            tooltip.style.padding = '12px 16px';
+                            tooltip.style.borderRadius = '8px';
+                            tooltip.style.fontSize = '0.9rem';
+                            tooltip.style.whiteSpace = 'nowrap';
+                            tooltip.style.opacity = '0';
+                            tooltip.style.visibility = 'hidden';
+                            tooltip.style.transition = 'all 0.3s ease';
+                            tooltip.style.zIndex = '1000';
+                            tooltip.style.pointerEvents = 'none';
+                            tooltip.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+                            tooltip.style.maxWidth = '300px';
+                            tooltip.style.whiteSpace = 'normal';
+                            
+                            if (info) {
+                                tooltip.innerHTML = `
+                                    <div style="font-weight: 600; margin-bottom: 8px; color: #4299e1;">${info.name}</div>
+                                    <div style="margin-bottom: 6px;">양: ${amount}mL</div>
+                                    <div style="margin-bottom: 6px; font-size: 0.8rem; color: #cbd5e0;">${info.description}</div>
+                                    <div style="font-size: 0.8rem; color: #a0aec0;">용해도: ${info.solubility}</div>
+                                `;
+                            } else {
+                                tooltip.innerHTML = `
+                                    <div style="font-weight: 600; margin-bottom: 8px; color: #4299e1;">${type}</div>
+                                    <div>양: ${amount}mL</div>
+                                `;
+                            }
+                            
+                            precipitateLayer.appendChild(tooltip);
+                            
+                            // 마우스 이벤트로 툴팁 위치 조정 및 표시
+                            precipitateLayer.addEventListener('mousemove', (e) => {
+                                tooltip.style.left = e.clientX + 15 + 'px';
+                                tooltip.style.top = e.clientY - 10 + 'px';
+                                tooltip.style.opacity = '1';
+                                tooltip.style.visibility = 'visible';
+                            });
+                            
+                            precipitateLayer.addEventListener('mouseleave', () => {
+                                tooltip.style.opacity = '0';
+                                tooltip.style.visibility = 'hidden';
+                            });
+                            
+                            // 클릭 이벤트 추가
+                            precipitateLayer.onclick = (e) => {
+                                e.stopPropagation();
+                                this.showPrecipitateDetail(type);
+                            };
+                            
+                            display.appendChild(precipitateLayer);
+                            
+                            // 다음 층을 위해 높이 누적
+                            currentBottom += amount;
                         }
-                        
-                        if (info) {
-                            tooltipContent += `<br><em>${info.description}</em><br>`;
-                            tooltipContent += `용해도: ${info.solubility}`;
-                        }
-                        
-                        tooltip.innerHTML = tooltipContent;
-                        precipitateLayer.appendChild(tooltip);
-                        
-                        // 마우스 이벤트로 툴팁 위치 조정
-                        precipitateLayer.addEventListener('mousemove', (e) => {
-                            tooltip.style.left = e.clientX + 10 + 'px';
-                            tooltip.style.top = e.clientY - 10 + 'px';
-                        });
-                        
-                        // 클릭 이벤트 추가
-                        precipitateLayer.onclick = (e) => {
-                            e.stopPropagation();
-                            this.showPrecipitateDetail(mainPrecipitate);
-                        };
-                        
-                        display.appendChild(precipitateLayer);
-                    }
+                    });
+                    
+                    // 총 침전물 높이 업데이트
+                    this.precipitateHeight = currentBottom;
                 }
             }
 
@@ -1900,6 +2007,31 @@
                 while (log.children.length > 20) {
                     log.removeChild(log.lastChild);
                 }
+            }
+
+            // 색상 조정 유틸리티 함수들
+            lightenColor(color, percent) {
+                // 색상을 밝게 만드는 함수
+                const num = parseInt(color.replace("#", ""), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = (num >> 16) + amt;
+                const G = (num >> 8 & 0x00FF) + amt;
+                const B = (num & 0x0000FF) + amt;
+                return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+                    (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+                    (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+            }
+
+            darkenColor(color, percent) {
+                // 색상을 어둡게 만드는 함수
+                const num = parseInt(color.replace("#", ""), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = (num >> 16) - amt;
+                const G = (num >> 8 & 0x00FF) - amt;
+                const B = (num & 0x0000FF) - amt;
+                return "#" + (0x1000000 + (R > 255 ? 255 : R < 0 ? 0 : R) * 0x10000 +
+                    (G > 255 ? 255 : G < 0 ? 0 : G) * 0x100 +
+                    (B > 255 ? 255 : B < 0 ? 0 : B)).toString(16).slice(1);
             }
 
             startTemperatureCooling() {
@@ -2236,5 +2368,5 @@
         // 초기 디스플레이 업데이트
         simulator.updateDisplay();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99274f32f407aa86',t:'MTc2MTExODQzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99275cf65054c43f',t:'MTc2MTExOTAwMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
