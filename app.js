@@ -3,12 +3,16 @@
 // ═══════════════════════════════════════════════════════════
 
 // ── Tab switching ───────────────────────────────────────────
+// New apps don't need any changes here: as long as the panel id is
+// "{name}-panel", the tab button has data-app="{name}", and (optionally)
+// a top action group has class="top-action-group" data-app="{name}",
+// switchTab() will wire them up automatically.
 function switchTab(name) {
-  document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'));
-  document.querySelectorAll('.app-panel').forEach(p => p.classList.remove('active'));
-
-  document.querySelector(`.app-tab[data-app="${name}"]`).classList.add('active');
-  document.getElementById(`${name}-panel`).classList.add('active');
+  document.querySelectorAll('.app-tab').forEach(t => t.classList.toggle('active', t.dataset.app === name));
+  document.querySelectorAll('.app-panel').forEach(p => p.classList.toggle('active', p.id === `${name}-panel`));
+  document.querySelectorAll('.top-action-group').forEach(g => {
+    g.style.display = (g.dataset.app === name) ? '' : 'none';
+  });
 
   // Update status bar
   document.getElementById('word-statusbar').classList.toggle('hidden', name !== 'word');
@@ -38,5 +42,5 @@ window.addEventListener('DOMContentLoaded', () => {
   Word.init();
   Sheet.init();
   Sheet.updateSheetStatus();
-  switchTab('word'); // default
+  switchTab('home'); // default: app selection home screen
 });
