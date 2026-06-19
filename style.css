@@ -273,6 +273,18 @@ body {
 .tb-btn:hover  { background: #3a3c42; color: #fff; }
 .tb-btn:active { background: #4a4d55; }
 
+.tb-btn.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.tb-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.tb-btn:disabled:hover { background: transparent; color: #ccc; }
+
 .tb-select {
   padding: 0.25rem 0.4rem;
   border: 1px solid #3a3c42;

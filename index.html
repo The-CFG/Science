@@ -112,15 +112,15 @@
     <div id="word-panel" class="app-panel">
 
       <!-- Toolbar -->
-      <div class="toolbar">
+      <div class="toolbar" id="word-toolbar">
 
         <div class="toolbar-group">
-          <button class="tb-btn" onclick="wFormat('undo')"  title="실행 취소">↩️</button>
-          <button class="tb-btn" onclick="wFormat('redo')"  title="다시 실행">↪️</button>
+          <button class="tb-btn" id="word-undo-btn" onclick="wFormat('undo')" title="실행 취소 (Ctrl+Z)" disabled>↩️</button>
+          <button class="tb-btn" id="word-redo-btn" onclick="wFormat('redo')" title="다시 실행 (Ctrl+Shift+Z)" disabled>↪️</button>
         </div>
 
         <div class="toolbar-group">
-          <select class="tb-select w-32" onchange="wFormat('fontName', this.value)" title="글꼴">
+          <select id="word-font-name" class="tb-select w-32" onchange="wFormat('fontName', this.value)" title="글꼴">
             <option value="Inter">Inter (기본)</option>
             <option value="Arial">Arial</option>
             <option value="Verdana">Verdana</option>
@@ -129,7 +129,7 @@
             <option value="Georgia">Georgia</option>
             <option value="Tahoma">Tahoma</option>
           </select>
-          <select class="tb-select w-16" onchange="wFormat('fontSize', this.value)" title="글자 크기">
+          <select id="word-font-size" class="tb-select w-16" onchange="wFormat('fontSize', this.value)" title="글자 크기">
             <option value="3">16px</option>
             <option value="1">12px</option>
             <option value="2">14px</option>
@@ -141,12 +141,12 @@
         </div>
 
         <div class="toolbar-group">
-          <button class="tb-btn" style="font-weight:700"                       onclick="wFormat('bold')"          title="굵게">B</button>
-          <button class="tb-btn" style="font-style:italic;font-family:serif"   onclick="wFormat('italic')"        title="기울임">I</button>
-          <button class="tb-btn" style="text-decoration:underline"             onclick="wFormat('underline')"     title="밑줄">U</button>
-          <button class="tb-btn" style="text-decoration:line-through"          onclick="wFormat('strikeThrough')" title="취소선">S</button>
-          <button class="tb-btn" style="font-size:11px"                        onclick="wFormat('superscript')"   title="윗첨자">X<sup>2</sup></button>
-          <button class="tb-btn" style="font-size:11px"                        onclick="wFormat('subscript')"     title="아랫첨자">X<sub>2</sub></button>
+          <button class="tb-btn" data-cmd="bold"          style="font-weight:700"                       onclick="wFormat('bold')"          title="굵게 (Ctrl+B)">B</button>
+          <button class="tb-btn" data-cmd="italic"        style="font-style:italic;font-family:serif"   onclick="wFormat('italic')"        title="기울임 (Ctrl+I)">I</button>
+          <button class="tb-btn" data-cmd="underline"     style="text-decoration:underline"             onclick="wFormat('underline')"     title="밑줄 (Ctrl+U)">U</button>
+          <button class="tb-btn" data-cmd="strikeThrough" style="text-decoration:line-through"          onclick="wFormat('strikeThrough')" title="취소선">S</button>
+          <button class="tb-btn" data-cmd="superscript"   style="font-size:11px"                        onclick="wFormat('superscript')"   title="윗첨자">X<sup>2</sup></button>
+          <button class="tb-btn" data-cmd="subscript"     style="font-size:11px"                        onclick="wFormat('subscript')"     title="아랫첨자">X<sub>2</sub></button>
         </div>
 
         <div class="toolbar-group">
@@ -162,15 +162,15 @@
         </div>
 
         <div class="toolbar-group">
-          <button class="tb-btn" onclick="wFormat('justifyLeft')"   title="왼쪽">⫷</button>
-          <button class="tb-btn" onclick="wFormat('justifyCenter')" title="가운데">≡</button>
-          <button class="tb-btn" onclick="wFormat('justifyRight')"  title="오른쪽">⫸</button>
-          <button class="tb-btn" onclick="wFormat('justifyFull')"   title="양쪽">▤</button>
+          <button class="tb-btn" data-cmd="justifyLeft"   onclick="wFormat('justifyLeft')"   title="왼쪽">⫷</button>
+          <button class="tb-btn" data-cmd="justifyCenter" onclick="wFormat('justifyCenter')" title="가운데">≡</button>
+          <button class="tb-btn" data-cmd="justifyRight"  onclick="wFormat('justifyRight')"  title="오른쪽">⫸</button>
+          <button class="tb-btn" data-cmd="justifyFull"   onclick="wFormat('justifyFull')"   title="양쪽">▤</button>
         </div>
 
         <div class="toolbar-group">
-          <button class="tb-btn" onclick="wFormat('insertUnorderedList')" title="글머리">•</button>
-          <button class="tb-btn" onclick="wFormat('insertOrderedList')"   title="번호">1.</button>
+          <button class="tb-btn" data-cmd="insertUnorderedList" onclick="wFormat('insertUnorderedList')" title="글머리">•</button>
+          <button class="tb-btn" data-cmd="insertOrderedList"   onclick="wFormat('insertOrderedList')"   title="번호">1.</button>
           <button class="tb-btn" onclick="wFormat('outdent')"  title="내어쓰기">⇤</button>
           <button class="tb-btn" onclick="wFormat('indent')"   title="들여쓰기">⇥</button>
         </div>
