@@ -30,6 +30,9 @@
       <button class="app-tab" data-app="sheet" onclick="switchTab('sheet')">
         <span class="tab-icon">📊</span> Sheet
       </button>
+      <button class="app-tab" data-app="htmlblast" onclick="switchTab('htmlblast')">
+        <span class="tab-icon">🌐</span> HTMLBlast
+      </button>
       <!-- 향후 추가될 앱 탭은 여기에 동일한 패턴으로 추가하면 됩니다 -->
     </div>
 
@@ -51,6 +54,12 @@
         <input type="file" id="sheet-file-input" accept=".json" style="display:none" onchange="sFileLoad(event)" />
         <button class="top-btn" onclick="sLoad()">📂 불러오기</button>
         <button class="top-btn primary" onclick="sSave()">💾 저장</button>
+      </div>
+      <!-- HTMLBlast actions -->
+      <div class="top-action-group" data-app="htmlblast">
+        <button class="top-btn" onclick="hbRun()">▶ 실행</button>
+        <button class="top-btn" onclick="hbLoad()">📄 불러오기</button>
+        <button class="top-btn primary" onclick="hbSave()">💾 저장</button>
       </div>
       <!-- 향후 추가될 앱의 상단 액션은 동일한 패턴(.top-action-group, data-app="앱이름")으로 추가하면 됩니다 -->
     </div>
@@ -81,6 +90,12 @@
             <div class="app-card-icon icon-sheet">📊</div>
             <div class="app-card-name">Sheet</div>
             <div class="app-card-desc">스프레드시트로 데이터와 수식을 다룹니다</div>
+          </button>
+
+          <button class="app-card" data-app="htmlblast" onclick="switchTab('htmlblast')">
+            <div class="app-card-icon icon-htmlblast">🌐</div>
+            <div class="app-card-name">HTMLBlast</div>
+            <div class="app-card-desc">HTML 코드를 작성하고 실시간으로 미리봅니다</div>
           </button>
 
           <!-- 향후 추가될 앱은 위와 동일한 .app-card 패턴으로 여기에 추가하면 됩니다 -->
@@ -211,6 +226,64 @@
 
     </div><!-- /sheet-panel -->
 
+
+    <!-- ── HTMLBLAST PANEL ────────────────────── -->
+    <div id="htmlblast-panel" class="app-panel">
+
+      <!-- 태그 삽입 툴바 -->
+      <div class="toolbar">
+        <div class="toolbar-group" id="htmlblast-tag-buttons" style="border-right:none;padding-right:0;margin-right:0;">
+          <button class="tb-btn" data-tag="p">p</button>
+          <button class="tb-btn" data-tag="h1">h1</button>
+          <button class="tb-btn" data-tag="h2">h2</button>
+          <button class="tb-btn" data-tag="h3">h3</button>
+          <button class="tb-btn" data-tag="h4">h4</button>
+          <button class="tb-btn" data-tag="h5">h5</button>
+          <button class="tb-btn" data-tag="h6">h6</button>
+          <button class="tb-btn" data-tag="strong">strong</button>
+          <button class="tb-btn" data-tag="div">div</button>
+          <button class="tb-btn" data-tag="span">span</button>
+          <button class="tb-btn" data-tag="a">a</button>
+          <button class="tb-btn" data-tag="img">img</button>
+          <button class="tb-btn" data-tag="ul">ul</button>
+          <button class="tb-btn" data-tag="ol">ol</button>
+          <button class="tb-btn" data-tag="li">li</button>
+          <button class="tb-btn" data-tag="nav">nav</button>
+          <button class="tb-btn" data-tag="header">header</button>
+          <button class="tb-btn" data-tag="footer">footer</button>
+          <button class="tb-btn" data-tag="main">main</button>
+          <button class="tb-btn" data-tag="input">input</button>
+          <button class="tb-btn" data-tag="button">button</button>
+          <button class="tb-btn" data-tag="form">form</button>
+          <button class="tb-btn" data-tag="table">table</button>
+        </div>
+      </div>
+
+      <!-- 코드 에디터 + 미리보기 -->
+      <div id="htmlblast-main">
+        <div class="hb-code-panel">
+          <div class="hb-panel-header">HTML Code</div>
+          <textarea
+            id="htmlblast-code-editor"
+            placeholder="여기에 HTML 코드를 작성하세요..."
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+          ></textarea>
+        </div>
+        <div class="hb-preview-panel">
+          <div class="hb-panel-header" id="htmlblast-preview-title">미리보기</div>
+          <iframe
+            id="htmlblast-preview-frame"
+            sandbox="allow-scripts allow-same-origin"
+            title="HTML 미리보기"
+          ></iframe>
+        </div>
+      </div>
+
+    </div><!-- /htmlblast-panel -->
+
   </div><!-- /app-container -->
 
 
@@ -226,6 +299,10 @@
     <!-- Sheet status -->
     <div id="sheet-statusbar" class="hidden">
       크기: <span id="sheet-status">20 행 × 8 열</span>
+    </div>
+    <!-- HTMLBlast status -->
+    <div id="htmlblast-statusbar" class="hidden">
+      코드 길이: <span id="htmlblast-char-count">0</span> 자
     </div>
     <div>TheCFG Office &copy; 2025</div>
   </div>
@@ -286,6 +363,7 @@
   <!-- ╚══════════════════════════════════════╝ -->
   <script src="word.js"></script>
   <script src="sheet.js"></script>
+  <script src="htmlblast.js"></script>
   <script src="app.js"></script>
 
 </body>

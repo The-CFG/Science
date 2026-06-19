@@ -203,6 +203,7 @@ body {
 
 .app-card-icon.icon-word  { background: linear-gradient(135deg, #3b82f6, #2563eb); }
 .app-card-icon.icon-sheet { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.app-card-icon.icon-htmlblast { background: linear-gradient(135deg, #f97316, #ea580c); }
 .app-card-icon.icon-placeholder { background: #3a3c42; color: #777; }
 
 .app-card-name {
@@ -566,3 +567,68 @@ body {
 .checkbox-row label { font-size: 12.5px; color: #9ca3af; cursor: pointer; user-select: none; }
 
 .msg-text { margin: 0.5rem 0 1.25rem; font-size: 13.5px; line-height: 1.5; color: #ccc; }
+
+/* ══════════════════════════════════════════════════════════════
+   HTMLBLAST PANEL
+══════════════════════════════════════════════════════════════ */
+#htmlblast-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.hb-code-panel,
+.hb-preview-panel {
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.hb-code-panel { border-right: 1px solid #111; }
+
+.hb-panel-header {
+  background: #25272b;
+  color: #9ca3af;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  font-size: 12.5px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #111;
+  user-select: none;
+}
+
+#htmlblast-code-editor {
+  flex: 1;
+  padding: 1rem;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+  border: none;
+  color: #e0e0e0;
+  background: #1e1f22;
+  tab-size: 4;
+}
+
+#htmlblast-code-editor::placeholder { color: #555; }
+
+#htmlblast-code-editor:focus {
+  background: #1a2333;
+  box-shadow: inset 3px 0 0 #3b82f6;
+}
+
+#htmlblast-preview-frame {
+  flex: 1;
+  border: none;
+  background: #fff;
+  min-height: 0;
+}
+
+@media (max-width: 800px) {
+  #htmlblast-main { flex-direction: column; }
+  .hb-code-panel, .hb-preview-panel { width: 100%; height: 50%; }
+  .hb-code-panel { border-right: none; border-bottom: 1px solid #111; }
+}
