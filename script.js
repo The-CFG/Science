@@ -101,7 +101,7 @@ function renderList(){
       <div class="pname">${escapeHtml(p.name || '이름 없음')}</div>
       <div class="pmeta">
         ${rarityIconHtml(p.rarity)}
-        ${escapeHtml(p.sinner||'')} · ${p.rarity||'?'}성
+        ${escapeHtml(p.sinner||'')}
       </div>
     </div>
   `).join('');
@@ -145,9 +145,9 @@ function renderDetail(p){
   }).join('');
 
   const statsHtml = p.stats ? `
-    <div class="stat-row"><span class="k">최대 레벨</span><span class="v">${escapeHtml(p.stats.maxLevel||'-')}</span></div>
+    <div class="stat-row"><span class="k">HP</span><span class="v">${escapeHtml(p.stats.maxLevel||'-')}</span></div>
     <div class="stat-row"><span class="k">속도</span><span class="v">${escapeHtml(p.stats.speed||'-')}</span></div>
-    <div class="stat-row"><span class="k">HP</span><span class="v">${escapeHtml(p.stats.hp||'-')}</span></div>
+    <div class="stat-row"><span class="k">방어력</span><span class="v">${escapeHtml(p.stats.hp||'-')}</span></div>
     <div class="stat-row"><span class="k">출시</span><span class="v">${escapeHtml(p.releaseDate||'-')}</span></div>
     <div class="stat-row"><span class="k">시즌</span><span class="v">${escapeHtml(p.season||'-')}</span></div>
   ` : '<div class="stat-row"><span class="k">데이터 없음</span></div>';
@@ -198,7 +198,7 @@ function renderDetail(p){
           <span>${(p.keywords||[]).join(', ')}</span>
         </div>
       </div>
-      <div class="stamp">${rarityIconHtml(p.rarity)}${p.rarity||'?'}급 인격</div>
+      <div>${rarityIconHtml(p.rarity)}</div>
     </div>
 
     <div class="grid-2">
