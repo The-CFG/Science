@@ -198,7 +198,7 @@ function renderDetail(p){
           <span>${(p.keywords||[]).join(', ')}</span>
         </div>
       </div>
-      <div>${rarityIconHtml(p.rarity)}</div>
+      <div class="stamp">${rarityIconHtml(p.rarity)}</div>
     </div>
 
     <div class="grid-2">
