@@ -125,7 +125,34 @@ function escapeHtml(str){
 // 없는 등급은 자동으로 기본 점(dot) 표시로 대체됩니다.
 function rarityIconHtml(rarity){
   if(!rarity) return '<span class="rarity-dot"></span>';
-  return `<img class="rarity-icon" src="assets/IDNumber${rarity}.webp" alt="${rarity}성" onerror="this.outerHTML='&lt;span class=&quot;rarity-dot&quot;&gt;&lt;/span&gt;'">`;
+  return `<img class="rarity-icon" src="assets/rarity/IDNumber${rarity}.webp" alt="${rarity}성" onerror="this.outerHTML='&lt;span class=&quot;rarity-dot&quot;&gt;&lt;/span&gt;'">`;
+}
+
+// 참격/관통/타격 내성·공격 타입 아이콘 (assets/resist/)
+const TYPE_ICON = { '참격':'Slash', '관통':'Pierce', '타격':'Blunt' };
+function typeIconHtml(type){
+  const file = TYPE_ICON[type];
+  if(!file) return escapeHtml(type||'-');
+  return `<img class="type-icon" src="assets/resist/${file}.webp" alt="${type}" title="${type}">`;
+}
+
+// 스탯 아이콘 (assets/stats/)
+function statIconHtml(key, label){
+  return `<img class="stat-icon" src="assets/stats/${key}.webp" alt="${label}" title="${label}">`;
+}
+
+// 코인 개수를 숫자 대신 코인 아이콘으로 나열 (assets/combat/)
+function coinIconsHtml(count){
+  const n = Number(count);
+  if(!n || n <= 0) return `<span>-</span>`;
+  return `<span class="coin-icons">${'<img class="coin-icon" src="assets/combat/Coin.webp" alt="코인">'.repeat(n)}</span>`;
+}
+
+// 공격/수비 스킬 구분 뱃지 (assets/combat/)
+function skillKindIconHtml(isDefense){
+  const file = isDefense ? 'SkillDefense' : 'SkillAttack';
+  const label = isDefense ? '수비 스킬' : '공격 스킬';
+  return `<img class="skill-kind-icon" src="assets/combat/${file}.webp" alt="${label}" title="${label}">`;
 }
 
 function sinColor(sin){
@@ -139,15 +166,15 @@ function renderDetail(p){
     if(!r) return '';
     return `
       <div class="resist-row">
-        <span>${type}</span>
+        <span class="resist-type">${typeIconHtml(type)}</span>
         <span class="resist-tag ${r.level}">${r.level} ${r.multiplier||''}</span>
       </div>`;
   }).join('');
 
   const statsHtml = p.stats ? `
-    <div class="stat-row"><span class="k">HP</span><span class="v">${escapeHtml(p.stats.maxLevel||'-')}</span></div>
-    <div class="stat-row"><span class="k">속도</span><span class="v">${escapeHtml(p.stats.speed||'-')}</span></div>
-    <div class="stat-row"><span class="k">방어력</span><span class="v">${escapeHtml(p.stats.hp||'-')}</span></div>
+    <div class="stat-row"><span class="k">${statIconHtml('HP','HP')}</span><span class="v">${escapeHtml(p.stats.maxLevel||'-')}</span></div>
+    <div class="stat-row"><span class="k">${statIconHtml('SPEED','속도')}</span><span class="v">${escapeHtml(p.stats.speed||'-')}</span></div>
+    <div class="stat-row"><span class="k">${statIconHtml('Defense','방어력')}</span><span class="v">${escapeHtml(p.stats.hp||'-')}</span></div>
     <div class="stat-row"><span class="k">출시</span><span class="v">${escapeHtml(p.releaseDate||'-')}</span></div>
     <div class="stat-row"><span class="k">시즌</span><span class="v">${escapeHtml(p.season||'-')}</span></div>
   ` : '<div class="stat-row"><span class="k">데이터 없음</span></div>';
@@ -249,12 +276,13 @@ function skillCard(s, isDefense){
   return `
     <div class="skill-card ${isDefense?'defense':''}">
       <div class="skill-head">
+        ${skillKindIconHtml(isDefense)}
         <span class="sname">${escapeHtml(s.name||'')}</span>
         ${sin ? `<span class="sin-tag" style="background:${sinColor(sin)}">${escapeHtml(sin)}</span>` : ''}
       </div>
       <div class="skill-stats">
-        <span>${isDefense?'수비':'공격'} 유형 <b>${escapeHtml(type)}</b></span>
-        <span>코인 수 <b>${escapeHtml(String(s.coinCount||'-'))}</b></span>
+        <span>유형 <b>${typeIconHtml(type)}</b></span>
+        <span>코인 수 <b>${coinIconsHtml(s.coinCount)}</b></span>
         <span>스킬 위력 <b>${escapeHtml(String(s.skillPower||'-'))}</b></span>
         <span>코인 위력 <b>${escapeHtml(String(s.coinPower||'-'))}</b></span>
         <span>가중치 <b>${escapeHtml(String(s.attackWeight||'-'))}</b></span>
