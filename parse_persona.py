@@ -304,42 +304,85 @@ def parse_persona_block(name: str, sinner: str, lines: list[str], start: int, en
     persona["defenseSkill"] = defense_skill
 
     # 패시브
+    # 패시브는 "이름 → N 공명/N 보유 → 0 → 0 → 설명" 패턴으로 반복되며,
+    # 개수가 1개로 고정돼있지 않음 (전투 패시브가 2개 이상인 인격 존재).
+    # "전투 패시브"/"서포트 패시브"/"상시 패시브" 라벨이 명시적으로 나오면 그걸로 타입 구분,
+    # 라벨이 없으면 직전 타입을 그대로 이어받음(기본값은 "전투 패시브").
+    # 또한 공명 수치 없이 이름+설명만 있는 "상시 특성" 패시브가 설명 안에 섞여
+    # 들어가는 경우가 있어, "(턴 당 패시브 최대 발동 횟수 : N회)" 같은 종결 문구를
+    # 만나면 그 다음부터는 별도 패시브(특성)로 분리한다.
     passives = []
     panic_idx = end
     if passive_idx < end:
-        i = passive_idx + 1
-        support_idx = None
-        try:
-            support_idx = lines.index("서포트 패시브", passive_idx, end)
-        except ValueError:
-            pass
-        panic_idx = None
         try:
             panic_idx = lines.index("패닉 유형", passive_idx, end)
         except ValueError:
             panic_idx = end
 
-        def parse_one_passive(pname_idx, pend, ptype):
-            pname = lines[pname_idx]
-            j = pname_idx + 1
-            resonance = lines[j] if j < pend else None
-            j += 1
-            # 0, 0 더미 스킵
-            while j < pend and re.match(r"^-?\d+$", lines[j]):
-                j += 1
-            desc_lines = []
-            while j < pend and lines[j] not in ("서포트 패시브",):
-                desc_lines.append(lines[j])
-                j += 1
-            return {"name": pname, "type": ptype, "resonance": resonance, "description": " ".join(desc_lines)}, j
+        marker_re = re.compile(r"^\d+\s?(공명|보유)$")
+        label_types = {"전투 패시브", "서포트 패시브", "상시 패시브"}
 
-        if support_idx is not None:
-            p1, _ = parse_one_passive(i, support_idx, "전투 패시브")
-            p2, _ = parse_one_passive(support_idx + 1, panic_idx, "서포트 패시브")
-            passives = [p1, p2]
+        markers = [i for i in range(passive_idx + 1, panic_idx) if marker_re.match(lines[i])]
+
+        if markers:
+            for k, marker_idx in enumerate(markers):
+                name_idx = marker_idx - 1
+                name = lines[name_idx]
+                resonance = lines[marker_idx]
+
+                ptype = "전투 패시브"
+                for back in range(1, 4):
+                    cand = name_idx - back
+                    if cand < passive_idx:
+                        break
+                    if lines[cand] in label_types:
+                        ptype = lines[cand]
+                        break
+
+                j = marker_idx + 1
+                while j < panic_idx and re.match(r"^-?\d+$", lines[j]):
+                    j += 1
+
+                block_end = markers[k + 1] - 1 if k + 1 < len(markers) else panic_idx
+                desc_lines = lines[j:block_end]
+
+                extra_passive = None
+                terminator = "패시브 최대 발동 횟수"
+                term_i = None
+                for di, dl in enumerate(desc_lines):
+                    if terminator in dl:
+                        term_i = di
+                        break
+                if term_i is not None and term_i + 1 < len(desc_lines):
+                    main_desc = desc_lines[:term_i + 1]
+                    remainder = desc_lines[term_i + 1:]
+                    if remainder and remainder[0] not in label_types:
+                        extra_name = remainder[0]
+                        extra_desc = remainder[1:]
+                        # 다음 패시브의 라벨("전투 패시브"/"서포트 패시브" 등)이
+                        # 설명 끝에 꼬리로 붙는 경우 제거
+                        if extra_desc and extra_desc[-1] in label_types:
+                            extra_desc = extra_desc[:-1]
+                        if extra_desc:
+                            extra_passive = {
+                                "name": extra_name,
+                                "type": "상시 특성",
+                                "resonance": None,
+                                "description": " ".join(extra_desc),
+                            }
+                    desc_lines = main_desc
+
+                passives.append({
+                    "name": name,
+                    "type": ptype,
+                    "resonance": resonance,
+                    "description": " ".join(desc_lines),
+                })
+                if extra_passive:
+                    passives.append(extra_passive)
         else:
-            p1, _ = parse_one_passive(i, panic_idx, "전투 패시브")
-            passives = [p1]
+            persona["_parse_warnings"].append("passive_markers_not_found")
+
     persona["passives"] = passives
 
     # 정신력(패닉) 조건
