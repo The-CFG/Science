@@ -1,3 +1,21 @@
+// ── Office 모듈 래퍼 함수 (전역 스코프 필수: index.html의 inline onclick="wFormat(...)" 등에서 호출됨) ──
+function wFormat(cmd, val) { Word.formatDoc(cmd, val); }
+function wClear()          { Word.clearDocument(); }
+function wSave()           { Word.showSaveDialog(); }
+function wHideSave()       { Word.hideSaveDialog(); }
+function wSaveChoice(t)    { Word.handleSaveChoice(t); }
+function wConfirmTxt()     { Word.confirmTxtSave(); }
+function wOpenFile(e)      { Word.openFile(e); }
+function wHideMsg()        { Word.hideMsg(); }
+function sAddRow()         { Sheet.addRow(); }
+function sAddCol()         { Sheet.addColumn(); }
+function sSave()           { Sheet.saveSheet(); }
+function sLoad()           { Sheet.loadSheet(); }
+function sFileLoad(e)      { Sheet.handleFileLoad(e); }
+function hbRun()           { HtmlBlast.run(); }
+function hbSave()          { HtmlBlast.save(); }
+function hbLoad()          { HtmlBlast.load(); }
+
 // --- 전역 변수 ---
 let currentFilename = '';
 const BASE_MODAL_Z_INDEX = 70;
@@ -14,140 +32,12 @@ let initialModalX, initialModalY;
 // --- 달력 관련 변수 ---
 let currentDate = new Date();
 
-/* --- 워드프로세서 모달의 JavaScript 부분 --- */
-function formatDoc(command, value = null) {
-    document.execCommand(command, false, value);
-    document.getElementById('editor').focus();
-}
-
-function showSaveDialog() {
-    const filenameInput = document.getElementById('filenameInput');
-    filenameInput.value = currentFilename || '문서.html';
-    document.getElementById('saveUnifiedDialog').classList.remove('hidden');
-    document.getElementById('filenameInputSection').classList.remove('hidden');
-    document.getElementById('txtWarningSection').classList.add('hidden');
-    filenameInput.focus();
-    filenameInput.select();
-}
-
-function hideSaveUnifiedDialog() {
-    document.getElementById('saveUnifiedDialog').classList.add('hidden');
-    document.getElementById('dontShowTxtWarningCheckbox').checked = false;
-    currentFilename = '';
-}
-
-function handleSaveChoice(type) {
-    let filename = document.getElementById('filenameInput').value.trim();
-    if (!filename) {
-        showMessageBox('파일 이름을 입력해주세요.');
-        return;
-    }
-    currentFilename = filename;
-
-    if (type === 'html') {
-        saveFile(currentFilename, 'html');
-        hideSaveUnifiedDialog();
-    } else if (type === 'txt') {
-        const dontShowAgain = localStorage.getItem('dontShowTxtWarning');
-        if (dontShowAgain === 'true') {
-            saveFile(currentFilename, 'txt');
-            hideSaveUnifiedDialog();
-        } else {
-            document.getElementById('filenameInputSection').classList.add('hidden');
-            document.getElementById('txtWarningSection').classList.remove('hidden');
-        }
-    }
-}
-
-function confirmTxtSave() {
-    const dontShowCheckbox = document.getElementById('dontShowTxtWarningCheckbox');
-    if (dontShowCheckbox.checked) {
-        localStorage.setItem('dontShowTxtWarning', 'true');
-    }
-    saveFile(currentFilename, 'txt');
-    hideSaveUnifiedDialog();
-}
-
-function saveFile(filename, type) {
-    let content;
-    let mimeType;
-    let finalFilename = filename;
-
-    if (type === 'html') {
-        content = document.getElementById('editor').innerHTML;
-        mimeType = 'text/html;charset=utf-8';
-        if (!finalFilename.toLowerCase().endsWith('.html')) {
-            finalFilename += '.html';
-        }
-    } else if (type === 'txt') {
-        content = document.getElementById('editor').innerText;
-        mimeType = 'text/plain;charset=utf-8';
-        if (!finalFilename.toLowerCase().endsWith('.txt')) {
-            finalFilename += '.txt';
-        }
-    } else {
-        showMessageBox('유효하지 않은 저장 형식입니다.');
-        return;
-    }
-
-    if (content) {
-        const blob = new Blob([content], { type: mimeType });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = finalFilename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href);
-        showMessageBox(`문서가 "${finalFilename}"으로 저장되었습니다.`);
-    }
-}
-
-function openTextFile(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const fileNameLower = file.name.toLowerCase();
-        const isHtml = fileNameLower.endsWith('.html');
-        const isTxt = fileNameLower.endsWith('.txt');
-
-        if (!isTxt && !isHtml) {
-            showMessageBox('텍스트(.txt) 또는 HTML(.html) 파일만 열 수 있습니다.');
-            event.target.value = '';
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            if (isHtml) {
-                document.getElementById('editor').innerHTML = e.target.result;
-                showMessageBox('HTML 파일이 로드되었습니다.');
-            } else {
-                document.getElementById('editor').innerText = e.target.result;
-                showMessageBox('텍스트 파일이 로드되었습니다.');
-            }
-        };
-        reader.onerror = function() {
-            showMessageBox('파일을 읽는 중 오류가 발생했습니다.');
-        };
-        reader.readAsText(file);
-    }
-    event.target.value = '';
-}
-
-function showMessageBox(message) {
-    const messageBox = document.getElementById('messageBox');
-    const messageText = document.getElementById('messageText');
-    messageText.innerText = message;
-    messageBox.classList.remove('hidden');
-}
-
-function hideMessageBox() {
-    document.getElementById('messageBox').classList.add('hidden');
-}
-/* --- /워드프로세서 모달의 JavaScript 부분 --- */
+/* 워드프로세서: word.js Word 모듈로 위임 */
 
 
 document.addEventListener('DOMContentLoaded', () => {
+
+
     // --- 공통 DOM 요소 참조 ---
     const allModals = document.querySelectorAll('.modal-window'); // 일반 앱 모달
     const allGameModals = document.querySelectorAll('.modal'); // 게임 앱 모달
@@ -177,8 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /* --- 스프레드시트 모달의 DOM 요소 참조 --- */
     const spreadsheetModal = document.getElementById('spreadsheetModal');
     const spreadsheetRoot = document.getElementById('spreadsheet-root');
-    let isSpreadsheetAppMounted = false;
-
+    
     /* --- 캐주얼 게임즈 모달의 DOM 요소 참조 --- */
     const casualGamesModal = document.getElementById('casualGamesModal');
     const launchMinesweeperButton = document.getElementById('launchMinesweeperButton');
@@ -583,393 +472,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    /* --- 스프레드시트 모달의 JavaScript 부분 (React 코드) --- */
-    const FunctionHelpModal = ({ isOpen, onClose }) => {
-      if (!isOpen) return null;
+    /* 스프레드시트: sheet.js Sheet 모듈로 위임 */
+            const spreadsheetModalInit = (() => {
+                let mounted = false;
+                return () => {
+                    if (!mounted) { Sheet.init(); mounted = true; }
+                };
+            })();
 
-      return React.createElement(
-        'div',
-        { className: 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-[110]' },
-        React.createElement(
-          'div',
-          { className: 'bg-white rounded-lg shadow-xl p-6 max-w-md w-full' },
-          React.createElement(
-            'h2',
-            { className: 'text-2xl font-bold text-gray-800 mb-4' },
-            '함수 도움말'
-          ),
-          React.createElement(
-            'p',
-            { className: 'text-gray-700 mb-4' },
-            '다음 함수를 사용할 수 있습니다:'
-          ),
-          React.createElement(
-            'ul',
-            { className: 'list-disc list-inside text-gray-700 mb-6 space-y-2' },
-            React.createElement(
-              'li',
-              null,
-              React.createElement('span', { className: 'font-semibold' }, 'SUM(범위)'),
-              ': 지정된 범위 내의 모든 숫자를 더합니다.',
-              React.createElement('br', null),
-              '예시: ',
-              React.createElement('code', { className: 'bg-gray-100 px-1 py-0.5 rounded text-sm' }, '=SUM(A1:B5)')
-            ),
-            React.createElement(
-              'li',
-              null,
-              React.createElement('span', { className: 'font-semibold' }, 'MINUS(값1, 값2)'),
-              ': 값1에서 값2를 뺍니다.',
-              React.createElement('br', null),
-              '예시: ',
-              React.createElement('code', { className: 'bg-gray-100 px-1 py-0.5 rounded text-sm' }, '=MINUS(A1,B1)'),
-              ' 또는 ',
-              React.createElement('code', { className: 'bg-gray-100 px-1 py-0.5 rounded text-sm' }, '=MINUS(100,20)')
-            ),
-            React.createElement(
-              'li',
-              null,
-              React.createElement('span', { className: 'font-semibold' }, 'TIME(값1, 값2)'),
-              ': 값1에 값2를 곱합니다.',
-              React.createElement('br', null),
-              '예시: ',
-              React.createElement('code', { className: 'bg-gray-100 px-1 py-0.5 rounded text-sm' }, '=TIME(A1,B1)'),
-              ' 또는 ',
-              React.createElement('code', { className: 'bg-gray-100 px-1 py-0.5 rounded text-sm' }, '=TIME(10,5)')
-            ),
-            React.createElement(
-              'li',
-              null,
-              React.createElement('span', { className: 'font-semibold' }, 'DIVISION(값1, 값2)'),
-              ': 값1을 값2로 나눕니다.',
-              React.createElement('br', null),
-              '예시: ',
-              React.createElement('code', { className: 'bg-gray-100 px-1 py-0.5 rounded text-sm' }, '=DIVISION(A1,B1)'),
-              ' 또는 ',
-              React.createElement('code', { className: 'bg-gray-100 px-1 py-0.5 rounded text-sm' }, '=DIVISION(100,10)')
-            )
-          ),
-          React.createElement(
-            'div',
-            { className: 'flex justify-end' },
-            React.createElement(
-              'button',
-              {
-                onClick: onClose,
-                className: 'px-6 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300 transition duration-150 ease-in-out'
-              },
-              '닫기'
-            )
-          )
-        )
-      );
-    };
-
-    const SpreadsheetApp = () => {
-      const { useState, useEffect, useRef } = React;
-
-      const [focusedCell, setFocusedCell] = useState(null);
-      const [isSpreadsheetHelpModalOpen, setIsSpreadsheetHelpModalOpen] = useState(false);
-
-      const [gridData, setGridData] = useState(() => {
-        const initialRawData = [];
-        for (let r = 0; r < 10; r++) {
-          initialRawData.push(Array(5).fill(''));
-        }
-        return initialRawData.map(row => row.map(rawVal => ({ raw: rawVal, display: rawVal })));
-      });
-
-      const numRows = gridData.length;
-      const numCols = gridData.length > 0 ? gridData[0].length : 0;
-
-      const parseCellReference = (ref) => {
-        const colCharMatch = ref.match(/[A-Z]/i);
-        const rowNumMatch = ref.match(/\d+/);
-
-        if (!colCharMatch || !rowNumMatch) {
-          throw new Error('Invalid cell reference format: ' + ref);
-        }
-
-        const col = colCharMatch[0].toUpperCase().charCodeAt(0) - 65;
-        const row = parseInt(rowNumMatch[0], 10) - 1;
-
-        if (col < 0 || row < 0) {
-          throw new Error('Cell reference out of bounds (negative indices): ' + ref);
-        }
-        return { col, row };
-      };
-
-      const parseRange = (rangeStr) => {
-        const parts = rangeStr.split(':');
-        const startRef = parseCellReference(parts[0]);
-        const endRef = parts.length > 1 ? parseCellReference(parts[1]) : startRef;
-
-        return {
-          startCol: Math.min(startRef.col, endRef.col),
-          startRow: Math.min(startRef.row, endRef.row),
-          endCol: Math.max(startRef.col, endRef.col),
-          endRow: Math.max(startRef.row, endRef.row)
-        };
-      };
-
-      const getNumericValue = (arg, currentGridState) => {
-        try {
-          const { row, col } = parseCellReference(arg);
-          if (row >= 0 && row < numRows && col >= 0 && col < numCols) {
-            const { display: referencedDisplayValue } = evaluateCell(row, col, currentGridState);
-            const val = parseFloat(referencedDisplayValue);
-            return isNaN(val) ? 0 : val;
-          }
-          return 0;
-        } catch (e) {
-          const num = parseFloat(arg);
-          return isNaN(num) ? 0 : num;
-        }
-      };
-
-      const evaluateCell = (rowIndex, colIndex, currentGridState) => {
-        if (rowIndex >= numRows || colIndex >= numCols || rowIndex < 0 || colIndex < 0) {
-          return { display: '#REF!' };
-        }
-        if (!currentGridState[rowIndex] || !currentGridState[rowIndex][colIndex]) {
-          return { display: '#REF!' };
-        }
-
-        const rawValue = currentGridState[rowIndex][colIndex].raw;
-
-        if (typeof rawValue !== 'string' || !rawValue.startsWith('=')) {
-          return { display: rawValue };
-        }
-
-        try {
-          const formula = rawValue.substring(1).trim();
-          const upperFormula = formula.toUpperCase();
-
-          if (upperFormula.startsWith('SUM(') && upperFormula.endsWith(')')) {
-            const rangeStr = formula.substring(4, formula.length - 1);
-            const { startCol, startRow, endCol, endRow } = parseRange(rangeStr);
-
-            let sum = 0;
-            for (let r = startRow; r <= endRow; r++) {
-              for (let c = startCol; c <= endCol; c++) {
-                if (r < numRows && c < numCols && currentGridState[r] && currentGridState[r][c]) {
-                  const { display: referencedDisplayValue } = evaluateCell(r, c, currentGridState);
-                  const val = parseFloat(referencedDisplayValue);
-                  if (!isNaN(val)) {
-                    sum += val;
-                  }
-                } else {
-                  console.warn(`Cell reference out of bounds or invalid in SUM formula: ${String.fromCharCode(65 + c)}${r + 1}`);
-                }
-              }
-            }
-            return { display: sum.toString() };
-          }
-          else if (upperFormula.startsWith('MINUS(') || upperFormula.startsWith('TIME(') || upperFormula.startsWith('DIVISION(')) {
-            const funcNameEndIndex = upperFormula.indexOf('(');
-            const funcName = upperFormula.substring(0, funcNameEndIndex);
-            const argsStr = formula.substring(funcNameEndIndex + 1, formula.length - 1);
-            const args = argsStr.split(',').map(arg => arg.trim());
-
-            if (args.length !== 2) {
-              return { display: '#VALUE!' };
-            }
-
-            const val1 = getNumericValue(args[0], currentGridState);
-            const val2 = getNumericValue(args[1], currentGridState);
-
-            let result;
-            switch (funcName) {
-              case 'MINUS':
-                result = val1 - val2;
-                break;
-              case 'TIME':
-                result = val1 * val2;
-                break;
-              case 'DIVISION':
-                if (val2 === 0) {
-                  return { display: '#DIV/0!' };
-                }
-                result = val1 / val2;
-                break;
-              default:
-                return { display: '#NAME?' };
-            }
-            return { display: result.toString() };
-          }
-          else {
-            return { display: '#NAME?' };
-          }
-        } catch (e) {
-          console.error('Formula evaluation error:', e);
-          return { display: '#ERROR!' };
-        }
-      };
-
-      const handleCellChange = (rowIndex, colIndex, value) => {
-        setGridData(prevGridData => {
-          const newGridData = prevGridData.map(row => row.map(cell => ({ ...cell })));
-          newGridData[rowIndex][colIndex].raw = value;
-
-          const updatedGridWithDisplays = newGridData.map((row, rIdx) =>
-            row.map((cell, cIdx) => {
-              const { display } = evaluateCell(rIdx, cIdx, newGridData);
-              return { raw: cell.raw, display };
-            })
-          );
-          return updatedGridWithDisplays;
-        });
-      };
-
-      const addRow = () => {
-        setGridData(prevGridData => {
-          const newRow = Array(numCols).fill({ raw: '', display: '' });
-          const newGrid = [...prevGridData, newRow];
-          return newGrid.map((row, rIdx) =>
-            row.map((cell, cIdx) => {
-              const { display } = evaluateCell(rIdx, cIdx, newGrid);
-              return { raw: cell.raw, display };
-            })
-          );
-        });
-      };
-
-      const addColumn = () => {
-        setGridData(prevGridData => {
-          const newGrid = prevGridData.map(row => [...row, { raw: '', display: '' }]);
-          return newGrid.map((row, rIdx) =>
-            row.map((cell, cIdx) => {
-              const { display } = evaluateCell(rIdx, cIdx, newGrid);
-              return { raw: cell.raw, display };
-            })
-          );
-        });
-      };
-
-      return React.createElement(
-        'div',
-        { className: 'min-h-full bg-gray-100 p-4 font-inter flex flex-col' },
-        React.createElement(
-          'div',
-          { className: 'container mx-auto bg-white shadow-lg rounded-lg p-6 flex flex-col flex-grow' },
-          React.createElement(
-            'h1',
-            { className: 'text-3xl font-bold text-gray-800 mb-6 text-center' },
-            '간단한 스프레드시트'
-          ),
-          React.createElement(
-            'div',
-            { className: 'mb-4 flex justify-center space-x-4' },
-            React.createElement(
-              'button',
-              {
-                onClick: addRow,
-                className: 'px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 transition duration-150 ease-in-out shadow-md'
-              },
-              '행 추가'
-            ),
-            React.createElement(
-              'button',
-              {
-                onClick: addColumn,
-                className: 'px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75 transition duration-150 ease-in-out shadow-md'
-              },
-              '열 추가'
-            ),
-            React.createElement(
-              'button',
-              {
-                onClick: () => setIsSpreadsheetHelpModalOpen(true),
-                className: 'px-6 py-3 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75 transition duration-150 ease-in-out shadow-md'
-              },
-              '함수 도움말'
-            )
-          ),
-          React.createElement(
-            'div',
-            { className: 'overflow-x-auto overflow-y-auto flex-grow' },
-            React.createElement(
-              'table',
-              { className: 'min-w-full border-collapse table-fixed' },
-              React.createElement(
-                'thead',
-                null,
-                React.createElement(
-                  'tr',
-                  { className: 'bg-gray-200' },
-                  React.createElement('th', { className: 'px-3 py-2 border border-gray-300 text-center text-sm font-semibold text-gray-600 rounded-tl-md sticky top-0 left-0 bg-gray-200 z-10' }),
-                  Array.from({ length: numCols }).map((_, colIndex) =>
-                    React.createElement(
-                      'th',
-                      {
-                        key: `col-header-${colIndex}`,
-                        className: `px-4 py-2 border border-gray-300 text-center text-sm font-semibold text-gray-600 sticky top-0 bg-gray-200 z-10 ${
-                          colIndex === numCols - 1 ? 'rounded-tr-md' : ''
-                        }`
-                      },
-                      String.fromCharCode(65 + colIndex)
-                    )
-                  )
-                )
-              ),
-              React.createElement(
-                'tbody',
-                null,
-                Array.from({ length: numRows }).map((_, rowIndex) =>
-                  React.createElement(
-                    'tr',
-                    { key: `row-${rowIndex}`, className: 'hover:bg-gray-50' },
-                    React.createElement(
-                      'td',
-                      { className: 'px-3 py-2 border border-gray-300 text-center text-sm font-semibold text-gray-600 bg-gray-200 sticky left-0 z-10' },
-                      rowIndex + 1
-                    ),
-                    Array.from({ length: numCols }).map((_, colIndex) =>
-                      React.createElement(
-                        'td',
-                        { key: `cell-${rowIndex}-${colIndex}`, className: 'p-0 border border-gray-300' },
-                        React.createElement('input', {
-                          type: 'text',
-                          value:
-                            focusedCell && focusedCell.row === rowIndex && focusedCell.col === colIndex
-                              ? gridData[rowIndex][colIndex].raw
-                              : gridData[rowIndex][colIndex].display,
-                          onChange: (e) => handleCellChange(rowIndex, colIndex, e.target.value),
-                          onFocus: () => setFocusedCell({ row: rowIndex, col: colIndex }),
-                          onBlur: () => setFocusedCell(null),
-                          className: 'w-full h-full p-2 outline-none focus:ring-2 focus:ring-blue-300 rounded-md transition duration-150 ease-in-out text-gray-700 text-sm',
-                          spellCheck: 'false'
-                        })
-                      )
-                    )
-                  )
-                )
-              )
-            )
-          )
-        ),
-        React.createElement(FunctionHelpModal, {
-          isOpen: isSpreadsheetHelpModalOpen,
-          onClose: () => setIsSpreadsheetHelpModalOpen(false)
-        })
-      );
-    };
-
-    // 스프레드시트 앱 초기화 함수
-    const spreadsheetModalInit = () => {
-        if (!isSpreadsheetAppMounted) {
-            if (typeof ReactDOM === 'undefined' || typeof React === 'undefined') {
-                spreadsheetRoot.innerHTML = '<div style="padding:2rem;text-align:center;color:#6b7280"><p style="font-size:1.2rem;margin-bottom:0.5rem">⚠️ 스프레드시트를 로드할 수 없습니다</p><p style="font-size:0.9rem">React 라이브러리를 불러오지 못했습니다.<br>인터넷 연결을 확인하고 페이지를 새로 고침해 주세요.</p></div>';
-                return;
-            }
-            ReactDOM.render(
-                React.createElement(SpreadsheetApp),
-                spreadsheetRoot
-            );
-            isSpreadsheetAppMounted = true;
-        }
-    };
-    /* --- /스프레드시트 모달의 JavaScript 부분 (React 코드) --- */
+            // 워드프로세서/HTMLBlast도 스프레드시트와 동일한 이유로 최초 1회만 init() 호출.
+            // Word.init()은 #word-editor / document에 이벤트 리스너를 추가하는데,
+            // 재호출 시 리스너가 누적되어 붙여넣기가 여러 번 삽입되거나 undo 스택이 오염됨.
+            // HtmlBlast.init()은 재호출 시 editor.value를 초기 템플릿으로 덮어써서
+            // 사용자가 작성 중인 코드가 모달을 다시 열 때마다 사라짐.
+            const wordProcessorModalInit = (() => {
+                let mounted = false;
+                return () => {
+                    if (!mounted) { Word.init(); mounted = true; }
+                };
+            })();
+            const htmlblastModalInit = (() => {
+                let mounted = false;
+                return () => {
+                    if (!mounted) { HtmlBlast.init(); mounted = true; }
+                };
+            })();
 
     /* --- 캐주얼 게임즈 모달의 JavaScript 부분 --- */
     // 지뢰찾기 함수들 (minesweeperElements 사용)
@@ -1256,10 +783,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const APP_WINDOWS = [
         { name: '계산기', openBtnId: 'openCalculatorModalBtn', closeBtnId: 'closeCalculatorModalBtn', modal: calculatorModal, onOpen: Calculator.resetUI },
         { name: '달력', openBtnId: 'openCalendarModalBtn', closeBtnId: 'closeCalendarModalBtn', modal: calendarModal, onOpen: renderCalendar },
-        { name: '워드프로세서', openBtnId: 'openWordProcessorModalBtn', closeBtnId: 'closeWordProcessorModalBtn', modal: wordProcessorModal },
+        { name: '워드프로세서', openBtnId: 'openWordProcessorModalBtn', closeBtnId: 'closeWordProcessorModalBtn', modal: wordProcessorModal, onOpen: wordProcessorModalInit },
         { name: '스프레드시트', openBtnId: 'openSpreadsheetModalBtn', closeBtnId: 'closeSpreadsheetModalBtn', modal: spreadsheetModal, onOpen: spreadsheetModalInit },
         { name: '캐주얼 게임즈', openBtnId: 'openCasualGamesModalBtn', closeBtnId: 'closeCasualGamesModalBtn', modal: casualGamesModal },
-        { name: '도움말', openBtnId: 'openHelpModalBtn', closeBtnId: 'closeHelpModalBtn', modal: helpModal },
+        { name: 'HTMLBlast', openBtnId: 'openHtmlblastModalBtn', closeBtnId: 'closeHtmlblastModalBtn', modal: document.getElementById('htmlblastModal'), onOpen: htmlblastModalInit },
+                { name: '도움말', openBtnId: 'openHelpModalBtn', closeBtnId: 'closeHelpModalBtn', modal: helpModal },
     ];
 
     const registerAppWindows = (configs) => {
